@@ -27,11 +27,9 @@ Bye = ('''\x1b[36;49;1m
 \x1b[0m''')
 
 
-
 def get_interface_name():
     output = subprocess.check_output(['netsh', 'interface','ipv4', 'show', 'interface'])
     output = output.decode('utf-8')
-    #print(output)
 
     for line in output.split('\n'):
         if ('Connected' and '1500') in line:
@@ -40,19 +38,14 @@ def get_interface_name():
     
     return ('\x1b[37;41;1mNo Adapter Found !!!\x1b[0m')
 
-
-
-
+#Checks what DNS is set on connection adapter.
 def DNS_Check(adapter_name):
-
-    # Set the name of the network adapter to check
-
+        
     # Run the 'ipconfig' command and capture its output
     output = subprocess.check_output(['ipconfig', '/all'])
 
     # Convert the output to a string
     output_str = output.decode('utf-8')
-    #print(output_str)
 
     # Check if DHCP Server is equal to DNS Server for the specified adapter.
     if f"{adapter_name}:" in output_str and 'DNS Servers . . . . . . . . . . . :' in output_str.split(f"{adapter_name}:")[1]:
@@ -82,8 +75,7 @@ def DNS_Check(adapter_name):
         return(f'Oops!!! No DNS found for {adapter_name}')
 
 
-
-
+#DNSs
 DNSs = {
     "Shecan": ['178.22.122.100', '185.51.200.2'],
     "Cloudflare":['1.1.1.1', '1.0.0.1'],
@@ -94,7 +86,7 @@ DNSs = {
 selected_option = None
 
 
-
+#Sets DNS.
 def Set_DNS(DNSserver):
     preferred_dns = DNSs[DNSserver][0]
     alternate_dns = DNSs[DNSserver][1]
@@ -122,12 +114,7 @@ def Set_DNS(DNSserver):
         print('\x1b[31;1mError adding alternate DNS server\x1b[0m')
         time.sleep(1)
 
-
-
-
-
-
-
+#Main process runs here.
 while selected_option != "q":
     # Clear the console screen
     os.system("cls" if os.name == "nt" else "clear")
@@ -163,8 +150,6 @@ while selected_option != "q":
 
 
     elif selected_option == "d":
-        # Set the name of the network adapter
-
         # Define the command to remove DNS from the network adapter
         command = f'netsh interface ipv4 delete dns "{Name}" all'
 
