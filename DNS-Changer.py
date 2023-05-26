@@ -109,28 +109,36 @@ def DNS_check(nic_name):
     # Convert the output to a string
     output_str = output.decode("utf-8")
 
+    # Separate result for each network adapter
+    output_parts = output_str.split("\r\n\r\n")
+
+    report = None
+    try:
+        i = 0
+        while i < len(output_parts):
+            if f"{nic_name}:" in output_parts[i]:
+                report = output_parts[i] + "\r\n" + output_parts[i + 1]
+            i = i + 1
+    except Exception:
+        pass
+
     # Check if DHCP Server is equal to DNS Server for the specified adapter.
-    if (
-        f"{nic_name}:" in output_str
-        and "DNS Servers . . . . . . . . . . . :" in output_str.split(f"{nic_name}:")[1]
-    ):
+    if report and "DNS Servers . . . . . . . . . . . :" in report:
         dns_servers = [
             line.strip().split(": ")[1]
-            for line in output_str.split(f"{nic_name}:")[1].split("\n")
+            for line in report.split("\n")
             if "DNS Servers" in line
         ]
         dhcp_server = [
             line.strip().split(": ")[1]
-            for line in output_str.split(f"{nic_name}:")[1].split("\n")
+            for line in report.split("\n")
             if "DHCP Server" in line
         ][0]
         if len(dns_servers) == 1 and dns_servers[0] == dhcp_server:
             return f"\x1b[34;1mOh! DNS Server Not set for\x1b[0m {nic_name}"
 
         for provider in DNS_PROVIDERS.keys():
-            if (
-                DNS_PROVIDERS[provider][0] and DNS_PROVIDERS[provider][1]
-            ) in output_str:
+            if (DNS_PROVIDERS[provider][0] and DNS_PROVIDERS[provider][1]) in report:
                 return (
                     f"\x1b[32;1mYes! {provider} DNS Server is set for\x1b[0m {nic_name}"
                 )
