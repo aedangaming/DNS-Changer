@@ -4,8 +4,11 @@ import pyuac
 import ctypes
 import time
 import json
+import tempfile
+from input_sanitizer import convert_keystrokes_fa_to_en
 from dns_providers import DNS_PROVIDERS
 from version import VERSION
+
 
 # Run as admin
 if not ctypes.windll.shell32.IsUserAnAdmin():
@@ -60,10 +63,29 @@ def get_all_nic_details():
     output = subprocess.check_output(
         ["netsh", "interface", "ipv4", "show", "interface"]
     )
-    output = output.decode("utf-8")
+
+    output_str = ""
+    try:
+        output_str = output.decode(errors="ignore")
+    except Exception:
+        try:
+            # Store the output that caused an exception when decoding
+            with open(
+                tempfile.gettempdir() + "\dns-changer_decode-exception.bin", "wb"
+            ) as file:
+                file.write(output)
+        except Exception:
+            pass
+        print(
+            "\nAn exception has occurred! Please send this file to the developers:\n"
+            + tempfile.gettempdir()
+            + "\dns-changer_decode-exception.bin"
+        )
+        input()
+        raise
 
     nic_list = []
-    for line in output.split("\n"):
+    for line in output_str.split("\n"):
         line = line.strip()
         if (
             ("connected" in line)
@@ -71,17 +93,19 @@ def get_all_nic_details():
             and ("disconnected" not in line)
         ):
             parts = line.split()
-            nic_list.append(
-                {
-                    "index": int(parts[0]),
-                    "metric": int(parts[1]),
-                    "status": parts[3],
-                    "name": " ".join([n for n in parts[4:]]),
-                }
-            )
+            try:
+                nic_list.append(
+                    {
+                        "index": int(parts[0]),
+                        "metric": int(parts[1]),
+                        "status": parts[3],
+                        "name": " ".join([n for n in parts[4:]]),
+                    }
+                )
+            except Exception:
+                pass
 
     return nic_list
-    # return "\x1b[37;41;1mNo Adapter Found !!!\x1b[0m"
 
 
 def detect_default_network_interface():
@@ -107,7 +131,25 @@ def DNS_check(nic_name):
     output = subprocess.check_output(["ipconfig", "/all"])
 
     # Convert the output to a string
-    output_str = output.decode("utf-8")
+    output_str = ""
+    try:
+        output_str = output.decode(errors="ignore")
+    except Exception:
+        try:
+            # Store the output that caused an exception when decoding
+            with open(
+                tempfile.gettempdir() + "\dns-changer_decode-exception.bin", "wb"
+            ) as file:
+                file.write(output)
+        except Exception:
+            pass
+        print(
+            "\nAn exception has occurred! Please send this file to the developers:\n"
+            + tempfile.gettempdir()
+            + "\dns-changer_decode-exception.bin"
+        )
+        input()
+        raise
 
     # Separate result for each network adapter
     output_parts = output_str.split("\r\n\r\n")
@@ -116,7 +158,7 @@ def DNS_check(nic_name):
     try:
         i = 0
         while i < len(output_parts):
-            if f"{nic_name}:" in output_parts[i]:
+            if f"adapter {nic_name}:" in output_parts[i]:
                 report = output_parts[i] + "\r\n" + output_parts[i + 1]
             i = i + 1
     except Exception:
@@ -124,24 +166,44 @@ def DNS_check(nic_name):
 
     # Check if DHCP Server is equal to DNS Server for the specified adapter.
     if report and "DNS Servers . . . . . . . . . . . :" in report:
-        dns_servers = [
-            line.strip().split(": ")[1]
-            for line in report.split("\n")
-            if "DNS Servers" in line
-        ]
-        dhcp_server = [
-            line.strip().split(": ")[1]
-            for line in report.split("\n")
-            if "DHCP Server" in line
-        ][0]
-        if len(dns_servers) == 1 and dns_servers[0] == dhcp_server:
+        dns_servers = []
+        dhcp_server = None
+
+        try:
+            i = 0
+            report_lines = report.split("\n")
+            while i < len(report_lines):
+                line = report_lines[i]
+                if "DNS Servers" in line:
+                    dns_servers.append(line.strip().split(":")[1].strip())
+                    if i < len(report_lines) - 1:
+                        next_line = report_lines[i + 1]
+                        next_line_parts = next_line.split(":")
+                        if len(next_line_parts) == 1 and len(next_line.strip()) > 0:
+                            dns_servers.append(next_line.strip())
+                i = i + 1
+        except Exception:
+            pass
+
+        try:
+            dhcp_server = [
+                line.strip().split(":")[1].strip()
+                for line in report.split("\n")
+                if "DHCP Server" in line
+            ][0]
+        except Exception:
+            pass
+
+        if dhcp_server and len(dns_servers) == 1 and dns_servers[0] == dhcp_server:
             return f"\x1b[34;1mOh! DNS Server Not set for\x1b[0m {nic_name}"
 
-        for provider in DNS_PROVIDERS.keys():
-            if (DNS_PROVIDERS[provider][0] and DNS_PROVIDERS[provider][1]) in report:
-                return (
-                    f"\x1b[32;1mYes! {provider} DNS Server is set for\x1b[0m {nic_name}"
-                )
+        if len(dns_servers) > 1:
+            for provider in DNS_PROVIDERS.keys():
+                if (
+                    DNS_PROVIDERS[provider][0] == dns_servers[0]
+                    and DNS_PROVIDERS[provider][1] == dns_servers[1]
+                ):
+                    return f"\x1b[32;1mYes! {provider} DNS Server is set for\x1b[0m {nic_name}"
 
         return f"\x1b[33;1mUnknown DNS is set for\x1b[0m {nic_name}"
 
@@ -196,13 +258,13 @@ while selected_option != "q":
             if nic["name"] == target_nic_name:
                 exists = True
 
+        DNS_status = DNS_check(target_nic_name)
+
         if exists:
-            DNS_status = DNS_check(target_nic_name)
             print(f" Selected network adapter ==> \x1b[33;1m{target_nic_name}\x1b[0m")
             print(" " + DNS_status)
             print("-----------------------------------------------" + "\n")
         else:
-            DNS_status = DNS_check(target_nic_name)
             print(
                 f" Selected network adapter ==> \x1b[33;1m{target_nic_name}\x1b[0m  \x1b[37;41;1mNot Available!\x1b[0m"
             )
@@ -228,7 +290,8 @@ while selected_option != "q":
     print("  Q. Exit")
     print("\n" + "-----------------------------------------------" + "\n")
 
-    selected_option = input("\x1b[36;49;1m  Your choice:\x1b[0m ").lower()
+    selected_option = input("\x1b[36;49;1m  Your choice:\x1b[0m ")
+    selected_option = convert_keystrokes_fa_to_en(selected_option).lower()
 
     if selected_option.isdigit() and int(selected_option) <= len(DNS_PROVIDERS):
         # Do something for the selected option
@@ -259,11 +322,13 @@ while selected_option != "q":
     elif selected_option == "n":
         os.system("cls" if os.name == "nt" else "clear")
         nics = get_all_nic_details()
+        print()
         for i, nic in enumerate(nics):
             print(f"  {i + 1}. {nic['name']}")
         print("\n  C. Cancel")
         print("\n" + "-----------------------------------------------" + "\n")
-        option = input("\x1b[36;49;1m  Your choice:\x1b[0m ").lower()
+        option = input("\x1b[36;49;1m  Your choice:\x1b[0m ")
+        option = convert_keystrokes_fa_to_en(option).lower()
 
         if option == "c":
             continue
