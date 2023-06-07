@@ -5,7 +5,9 @@ import ctypes
 import time
 import json
 import tempfile
+import sys
 from input_sanitizer import convert_keystrokes_fa_to_en
+from Updater import check_Update, Updater, REPO_NAME ,REPO_OWNER
 from dns_providers import DNS_PROVIDERS
 from version import VERSION
 
@@ -247,6 +249,8 @@ while selected_option != "q":
     # Clear the console screen
     os.system("cls" if os.name == "nt" else "clear")
 
+    current_software_name = sys.argv[0]
+
     # Print the header text with the current options
     print(header + ("\n"))
 
@@ -287,6 +291,7 @@ while selected_option != "q":
     print("  C. Clear DNS (auto)")
     print("  F. Flush DNS cache")
     print("  N. Choose network adapter")
+    print("  U. Update")
     print("  Q. Exit")
     print("\n" + "-----------------------------------------------" + "\n")
 
@@ -342,6 +347,38 @@ while selected_option != "q":
 
         print("\x1b[37;41;1mInvalid input. Please try again...\x1b[0m")
         time.sleep(1.5)
+
+    elif selected_option == "u":
+        os.system("cls" if os.name == "nt" else "clear")
+        Update_check_result = check_Update()
+        if Update_check_result == True:
+            while True:
+                print("Your current version is not up to date, do you want to Update now?")
+                print("Y = YES")
+                print("N = NO")
+                print()
+                option = input("\x1b[36;49;1m  Your choice:\x1b[0m ")
+                option = convert_keystrokes_fa_to_en(option).lower()
+
+                if option == "y":
+                    print()
+                    Updater(current_software_name)
+                    exit()
+
+                elif option == "n":
+                    print("ok")
+                    break
+
+                else:
+                    print("\x1b[37;41;1mInvalid input. Please try again...\x1b[0m")
+                    time.sleep(1.5)
+                    os.system("cls" if os.name == "nt" else "clear")
+
+        else:
+            print()
+            print("Your using latest version.")
+            time.sleep(2)
+        
 
     else:
         # Invalid input
