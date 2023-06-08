@@ -391,8 +391,13 @@ while selected_option != "q":
 
                 if option == "y":
                     print()
-                    updater(file_name)
-                    exit()
+                    if updater(file_name):
+                        exit()
+                    else:
+                        print(
+                            "  \x1b[37;41;1mFailed to download the latest version. Check your connection and try again\x1b[0m"
+                        )
+                        time.sleep(2)
 
                 elif option == "n":
                     print("ok")
@@ -405,7 +410,7 @@ while selected_option != "q":
         elif Update_check_result == False:
             print(header + "\n")
             print("-----------------------------------------------" + "\n")
-            print("  Your using latest version.")
+            print("  You are using latest version.")
             time.sleep(2)
         else:
             print(header + "\n")
