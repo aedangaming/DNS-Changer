@@ -6,8 +6,9 @@ import time
 import json
 import tempfile
 import sys
+import threading
 from input_sanitizer import convert_keystrokes_fa_to_en
-from Updater import check_Update, Updater, REPO_NAME ,REPO_OWNER
+from updater import updater, check_latest_release
 from dns_providers import DNS_PROVIDERS
 from version import VERSION
 
@@ -21,6 +22,9 @@ if not ctypes.windll.shell32.IsUserAnAdmin():
 CONFIG_FILE = "config.json"
 target_nic_name = None
 detected_nic_name = None
+
+# Update status
+is_update_available = False
 
 
 def load_config():
@@ -40,18 +44,13 @@ def save_config():
         pass
 
 
-header = (
-    f"""\x1b[92;1m     __        __           ___ ___ 
+header = f"""\x1b[92;1m     __        __           ___ ___ 
 \ / /  \ |  | |__)    |\ | |__   |  
  |  \__/ \__/ |  \    | \| |___  |  
                                     
                      __   ___  __  
 |\/|  /\  |\ |  /\  / _` |__  |__) 
-|  | /~~\ | \| /~~\ \__> |___ |  \   v{VERSION}
-                                   \x1b[0m"""
-    + "\n"
-    + " Khosh oomadi:"
-)
+|  | /~~\ | \| /~~\ \__> |___ |  \   v{VERSION}\x1b[0m"""
 
 bye_message = """\x1b[36;49;1m
      _             _         
@@ -226,7 +225,7 @@ def set_DNS(nic_name, provider):
         print("\x1b[92;1mPreferred DNS server set successfully\x1b[0m")
         time.sleep(0.1)
     else:
-        print("\x1b[31;1mError setting preferred DNS server\x1b[0m")
+        print(" \x1b[31;1mError setting preferred DNS server\x1b[0m")
         time.sleep(1)
     # Set the alternate DNS server
     if (
@@ -238,21 +237,40 @@ def set_DNS(nic_name, provider):
         print("\x1b[92;1mAlternate DNS server added successfully\x1b[0m")
         time.sleep(1)
     else:
-        print("\x1b[31;1mError adding alternate DNS server\x1b[0m")
+        print(" \x1b[31;1mError adding alternate DNS server\x1b[0m")
         time.sleep(1)
 
 
 load_config()
+
+
+# Cheack for new updates
+def check_Update():
+    result = check_latest_release()
+    if not result:
+        return None
+    if result and result["version"] != VERSION:
+        global is_update_available
+        is_update_available = True
+        return True
+    else:
+        return False
+
+
+updater_thread = threading.Thread(target=check_Update)
+updater_thread.start()
+
 selected_option = None
 # Main process runs here.
 while selected_option != "q":
     # Clear the console screen
     os.system("cls" if os.name == "nt" else "clear")
 
-    current_software_name = sys.argv[0]
+    file_path = sys.argv[0]
+    file_name = file_path.split("\\")[-1]
 
     # Print the header text with the current options
-    print(header + ("\n"))
+    print(header + "\n")
 
     # Print DNS status of the network interface
     if target_nic_name:
@@ -291,7 +309,10 @@ while selected_option != "q":
     print("  C. Clear DNS (auto)")
     print("  F. Flush DNS cache")
     print("  N. Choose network adapter")
-    print("  U. Update")
+    if is_update_available:
+        print("  U. Update \x1b[38;5;119m(New version available)\x1b[0m")
+    else:
+        print("  U. Update")
     print("  Q. Exit")
     print("\n" + "-----------------------------------------------" + "\n")
 
@@ -327,42 +348,50 @@ while selected_option != "q":
     elif selected_option == "n":
         os.system("cls" if os.name == "nt" else "clear")
         nics = get_all_nic_details()
-        print()
-        for i, nic in enumerate(nics):
-            print(f"  {i + 1}. {nic['name']}")
-        print("\n  C. Cancel")
-        print("\n" + "-----------------------------------------------" + "\n")
-        option = input("\x1b[36;49;1m  Your choice:\x1b[0m ")
-        option = convert_keystrokes_fa_to_en(option).lower()
+        while True:
+            print(header + "\n")
+            print("-----------------------------------------------" + "\n")
+            for i, nic in enumerate(nics):
+                print(f"  {i + 1}. {nic['name']}")
+            print("\n  C. Cancel")
+            print("\n" + "-----------------------------------------------" + "\n")
+            option = input("\x1b[36;49;1m  Your choice:\x1b[0m ")
+            option = convert_keystrokes_fa_to_en(option).lower()
 
-        if option == "c":
-            continue
+            if option == "c":
+                break
 
-        if option.isdigit():
-            number = int(option)
-            if number >= 1 and number <= len(nics):
-                target_nic_name = nics[number - 1]["name"]
-                save_config()
-                continue
+            if option.isdigit():
+                number = int(option)
+                if number >= 1 and number <= len(nics):
+                    target_nic_name = nics[number - 1]["name"]
+                    save_config()
+                    break
 
-        print("\x1b[37;41;1mInvalid input. Please try again...\x1b[0m")
-        time.sleep(1.5)
+            print("  \x1b[37;41;1mInvalid input. Please try again...\x1b[0m")
+            time.sleep(1.5)
+            os.system("cls" if os.name == "nt" else "clear")
 
     elif selected_option == "u":
         os.system("cls" if os.name == "nt" else "clear")
         Update_check_result = check_Update()
         if Update_check_result == True:
             while True:
-                print("Your current version is not up to date, do you want to Update now?")
-                print("Y = YES")
-                print("N = NO")
-                print()
+                print(header + "\n")
+                print("-----------------------------------------------" + "\n")
+                print(
+                    "  Your current version is not up to date, do you want to Update now?"
+                    + "\n"
+                )
+                print("    Y = YES")
+                print("    N = NO")
+                print("\n" + "-----------------------------------------------" + "\n")
                 option = input("\x1b[36;49;1m  Your choice:\x1b[0m ")
                 option = convert_keystrokes_fa_to_en(option).lower()
 
                 if option == "y":
                     print()
-                    Updater(current_software_name)
+                    updater(file_name)
                     exit()
 
                 elif option == "n":
@@ -370,17 +399,23 @@ while selected_option != "q":
                     break
 
                 else:
-                    print("\x1b[37;41;1mInvalid input. Please try again...\x1b[0m")
+                    print("  \x1b[37;41;1mInvalid input. Please try again...\x1b[0m")
                     time.sleep(1.5)
                     os.system("cls" if os.name == "nt" else "clear")
-
-        else:
-            print()
-            print("Your using latest version.")
+        elif Update_check_result == False:
+            print(header + "\n")
+            print("-----------------------------------------------" + "\n")
+            print("  Your using latest version.")
             time.sleep(2)
-        
+        else:
+            print(header + "\n")
+            print("-----------------------------------------------" + "\n")
+            print(
+                "  \x1b[37;41;1mUpdate check has failed please try again later.\x1b[0m"
+            )
+            time.sleep(2)
 
     else:
         # Invalid input
-        print("\x1b[37;41;1mInvalid input. Please try again...\x1b[0m")
+        print("  \x1b[37;41;1mInvalid input. Please try again...\x1b[0m")
         time.sleep(1.5)

@@ -2,7 +2,7 @@ import requests
 import json
 import os
 import subprocess
-from version import VERSION
+
 
 REPO_OWNER = "aedangaming"
 REPO_NAME = "DNS-Changer"
@@ -20,15 +20,7 @@ def check_latest_release():
         return None
 
 
-def check_Update():
-    result = check_latest_release()
-    if result and result["version"] != VERSION:
-        return True
-    else:
-        return False
-
-
-def Updater(current_software_name):
+def updater(file_name):
     result = check_latest_release()
     download_url = f"https://github.com/{REPO_OWNER}/{REPO_NAME}/releases/download/{result['latest_version']}/DNS-Changer_{result['version']}.exe"
     response = requests.get(download_url)
@@ -38,8 +30,8 @@ def Updater(current_software_name):
         os.makedirs("New_Update", exist_ok=True)
         with open("New_Update\\" + exe_filename, "wb") as file:
             file.write(response.content)
-        command = f'start cmd /c "ping -n 3 127.0.0.1 && del /f DNS-Changer.exe && move .\\New_Update\\DNS-Changer.exe .\\DNS-Changer.exe && rmdir New_Update && .\\DNS-Changer.exe && exit"'
-        subprocess.Popen(command, shell=True, creationflags=subprocess.DETACHED_PROCESS)
+        command = f'cmd /c "ping -n 3 127.0.0.1 && del /f {file_name} && move .\\New_Update\\DNS-Changer.exe .\\DNS-Changer.exe && rmdir New_Update && DNS-Changer.exe"'
+        subprocess.Popen(command, shell=True, creationflags=subprocess.CREATE_NO_WINDOW)
 
     else:
         return "Failed to download the latest version."
