@@ -392,12 +392,13 @@ while selected_option != "q":
                 if option == "y":
                     print()
                     if updater(file_name):
-                        exit()
+                        sys.exit()
                     else:
                         print(
                             "  \x1b[37;41;1mFailed to download the latest version. Check your connection and try again\x1b[0m"
                         )
                         time.sleep(2)
+                        os.system("cls" if os.name == "nt" else "clear")
 
                 elif option == "n":
                     print("ok")
