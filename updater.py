@@ -4,32 +4,46 @@ import json
 import requests
 import subprocess
 from tqdm import tqdm
+from datetime import datetime
 from version import VERSION
 
 REPO_OWNER = "aedangaming"
 REPO_NAME = "DNS-Changer"
 
 is_update_available = False
+last_update_check = datetime.min
+MIN_CHECK_UPDATE_INTERVAL = 300
 
 
 # Check if a newer version is available
 def check_Update():
     global is_update_available
+    global last_update_check
+
     if is_update_available:
         return True
 
+    if (
+        not is_update_available
+        and (datetime.now() - last_update_check).total_seconds()
+        < MIN_CHECK_UPDATE_INTERVAL
+    ):
+        return False
+
     result = check_latest_release()
+    last_update_check = datetime.now()
+
     if not result:
         return None
-    
-    if result and result["version"] != VERSION:
+
+    if result["version"] != VERSION:
         is_update_available = True
         return True
     else:
         return False
 
 
-# Get last available software version
+# Get latest available software version
 def check_latest_release():
     try:
         url = f"https://api.github.com/repos/{REPO_OWNER}/{REPO_NAME}/releases/latest"
@@ -46,7 +60,7 @@ def check_latest_release():
 
 
 # Perfom update
-def updater(old_exe_filename):
+def update(old_exe_filename):
     try:
         result = check_latest_release()
         download_url = f"https://github.com/{REPO_OWNER}/{REPO_NAME}/releases/download/{result['latest_version']}/DNS-Changer_{result['version']}.exe"

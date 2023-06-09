@@ -5,9 +5,10 @@ import json
 import pyuac
 import ctypes
 import threading
+
+import updater
 import network_adapters
 from input_sanitizer import convert_keystrokes_fa_to_en
-from updater import updater, check_Update, is_update_available
 from dns_providers import DNS_PROVIDERS
 from version import VERSION
 
@@ -105,14 +106,13 @@ def main():
         # Re-launch the script with elevated privileges
         pyuac.runAsAdmin()
 
-    # CMD window height an width
+    # set CMD window height and width
     os.system("mode 78,35")
 
     load_config()
-    updater_thread = threading.Thread(target=check_Update)
+    updater_thread = threading.Thread(target=updater.check_Update)
     updater_thread.start()
 
-    selected_option = None
     # Main process runs here.
     while True:
         # Clear the console screen
@@ -169,7 +169,9 @@ def main():
         print("  N. Choose network adapter")
         print()
         update_notification = "\x1b[38;5;119m(New version available)\x1b[0m"
-        print(f"  U. Update { update_notification if is_update_available else ''}")
+        print(
+            f"  U. Update {update_notification if updater.is_update_available else ''}"
+        )
         print("  G. Github page")
         print("  Q. Quit")
         print("\n" + "-----------------------------------------------")
@@ -230,7 +232,7 @@ def main():
 
         elif selected_option == "u":
             os.system("cls" if os.name == "nt" else "clear")
-            update_check_result = check_Update()
+            update_check_result = updater.check_Update()
             if update_check_result == True:
                 while True:
                     print(header + "\n")
@@ -249,7 +251,7 @@ def main():
 
                     if option == "y":
                         print()
-                        if updater(exe_filename):
+                        if updater.update(exe_filename):
                             sys.exit()
                         else:
                             print(
