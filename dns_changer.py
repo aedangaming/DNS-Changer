@@ -18,6 +18,8 @@ if not ctypes.windll.shell32.IsUserAnAdmin():
     # Re-launch the script with elevated privileges
     pyuac.runAsAdmin()
 
+# CMD window height an width
+os.system("mode 78,35")
 
 CONFIG_FILE = "config.json"
 target_nic_name = None
@@ -51,13 +53,6 @@ header = f"""\x1b[92;1m     __        __           ___ ___
                      __   ___  __  
 |\/|  /\  |\ |  /\  / _` |__  |__) 
 |  | /~~\ | \| /~~\ \__> |___ |  \   v{VERSION}\x1b[0m"""
-
-bye_message = """\x1b[36;49;1m
-     _             _         
-    / `_  _   _/  /_)   _   /
-   /_;/_//_//_/  /_)/_//_' . 
-                    _/       
-\x1b[0m"""
 
 
 def get_all_nic_details():
@@ -262,7 +257,7 @@ updater_thread.start()
 
 selected_option = None
 # Main process runs here.
-while selected_option != "q":
+while True:
     # Clear the console screen
     os.system("cls" if os.name == "nt" else "clear")
 
@@ -309,15 +304,16 @@ while selected_option != "q":
     print("  C. Clear DNS (auto)")
     print("  F. Flush DNS cache")
     print("  N. Choose network adapter")
-    if is_update_available:
-        print("  U. Update \x1b[38;5;119m(New version available)\x1b[0m")
-    else:
-        print("  U. Update")
-    print("  Q. Exit")
-    print("\n" + "-----------------------------------------------" + "\n")
+    print()
+    update_notification = "\x1b[38;5;119m(New version available)\x1b[0m"
+    print(f"  U. Update { update_notification if is_update_available else ''}")
+    print("  G. Github page")
+    print("  Q. Quit")
+    print("\n" + "-----------------------------------------------")
 
     selected_option = input("\x1b[36;49;1m  Your choice:\x1b[0m ")
     selected_option = convert_keystrokes_fa_to_en(selected_option).lower()
+    print()
 
     if selected_option.isdigit() and int(selected_option) <= len(DNS_PROVIDERS):
         # Do something for the selected option
@@ -327,10 +323,7 @@ while selected_option != "q":
         set_DNS(nic_name, selected_DNS)
 
     elif selected_option == "q":
-        # Exit the loop
-        os.system("cls" if os.name == "nt" else "clear")
-        print(bye_message)
-        time.sleep(2)
+        break
 
     elif selected_option == "c":
         # Define the command to remove DNS from the network adapter
@@ -420,6 +413,8 @@ while selected_option != "q":
                 "  \x1b[37;41;1mUpdate check has failed please try again later.\x1b[0m"
             )
             time.sleep(2)
+    elif selected_option == "g":
+        os.system("start https://github.com/aedangaming/DNS-Changer")
 
     else:
         # Invalid input
