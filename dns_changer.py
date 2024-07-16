@@ -173,6 +173,7 @@ def main():
             f"  U. Update {update_notification if updater.is_update_available else ''}"
         )
         print("  G. Github page")
+        print("  D. Discord server")
         print("  Q. Quit")
         print("\n" + "-----------------------------------------------")
 
@@ -284,6 +285,8 @@ def main():
                 time.sleep(2)
         elif selected_option == "g":
             os.system("start https://github.com/aedangaming/DNS-Changer")
+        elif selected_option == "d":
+            os.system("start https://discord.com/invite/ZJVhgBCw3Q")
 
         else:
             # Invalid input
