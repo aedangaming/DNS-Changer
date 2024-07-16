@@ -1,4 +1,4 @@
 pyuac==0.0.3
 pywin32==306
-tqdm==4.65.0
-requests==2.31
+tqdm==4.66.3
+requests==2.32.0
