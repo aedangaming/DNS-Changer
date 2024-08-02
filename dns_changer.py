@@ -94,7 +94,7 @@ def set_DNS(nic_name, provider):
         == 0
     ):
         print("\x1b[92;1mAlternate DNS server added successfully\x1b[0m")
-        time.sleep(1)
+        time.sleep(0.5)
     else:
         print(" \x1b[31;1mError adding alternate DNS server\x1b[0m")
         time.sleep(1)
@@ -107,7 +107,7 @@ def main():
         pyuac.runAsAdmin()
 
     # set CMD window height and width
-    os.system("mode 78,35")
+    os.system("mode 70,41")
 
     load_config()
     updater_thread = threading.Thread(target=updater.check_Update)
@@ -187,6 +187,9 @@ def main():
             selected_DNS = list(DNS_PROVIDERS.keys())[chosen_dns_index]
             print("You selected: {}".format(selected_DNS))
             set_DNS(nic_name, selected_DNS)
+            command = f"ipconfig /flushdns"
+            os.system(command)
+            time.sleep(0.5)
 
         elif selected_option == "q":
             break
@@ -196,13 +199,15 @@ def main():
             command = f'netsh interface ipv4 delete dns "{nic_name}" all'
             if os.system(command) == 0:
                 print("\x1b[35;47;1mDNS successfuly disabled.\x1b[0m")
-            time.sleep(1.5)
+                command = f"ipconfig /flushdns"
+                os.system(command)
+                time.sleep(0.5)
 
         elif selected_option == "f":
             # Define the command to flush DNS cache
             command = f"ipconfig /flushdns"
             os.system(command)
-            time.sleep(1.5)
+            time.sleep(0.5)
 
         elif selected_option == "n":
             os.system("cls" if os.name == "nt" else "clear")
@@ -228,7 +233,7 @@ def main():
                         break
 
                 print("  \x1b[37;41;1mInvalid input. Please try again...\x1b[0m")
-                time.sleep(1.5)
+                time.sleep(1)
                 os.system("cls" if os.name == "nt" else "clear")
 
         elif selected_option == "u":
@@ -269,13 +274,13 @@ def main():
                         print(
                             "  \x1b[37;41;1mInvalid input. Please try again...\x1b[0m"
                         )
-                        time.sleep(1.5)
+                        time.sleep(1)
                         os.system("cls" if os.name == "nt" else "clear")
             elif update_check_result == False:
                 print(header + "\n")
                 print("-----------------------------------------------" + "\n")
                 print("  You are using the latest version.")
-                time.sleep(2)
+                time.sleep(1)
             else:
                 print(header + "\n")
                 print("-----------------------------------------------" + "\n")
@@ -291,7 +296,7 @@ def main():
         else:
             # Invalid input
             print("  \x1b[37;41;1mInvalid input. Please try again...\x1b[0m")
-            time.sleep(1.5)
+            time.sleep(1)
 
 
 if __name__ == "__main__":
